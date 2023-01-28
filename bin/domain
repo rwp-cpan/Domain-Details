@@ -4,7 +4,7 @@
 # ABSTRACT: Get DNS/SSL/WHOIS information on a domain
 
 use v5.36;
-use lib '/home/regular/IdeaProjects/Domain-Details/lib';
+# use lib '/home/regular/IdeaProjects/Domain-Details/lib';
 use Domain::Details;
 
 my $domain = Domain::Details -> new( domain => $ARGV[0] );
