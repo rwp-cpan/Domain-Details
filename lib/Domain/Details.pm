@@ -18,19 +18,20 @@ use Geo::IP;
 use Term::ANSIColor;
 
 class Domain::Details {
+
   use experimental qw( try );
+
   # @formatter:off
+
   field $domain :param :reader;
-  field $comment :accessor;
-  field $expiration :reader { $self -> _expiration };
-  field $ssl_expiration :reader { $self -> _ssl_expiration };
-  # @formatter:on
-  method _expiration ( $format //= '%B %d, %Y' ) {
+  field $description :accessor;
+
+  method $whois_expiration ( $format //= '%B %d, %Y' ) {
     my $publicsuffix = Domain::PublicSuffix -> new;
     setlocale( LC_ALL , 'en_US.UTF-8' );
     return expire_date( $publicsuffix -> get_root_domain( $domain ) , $format ); # domain without the www. prefix
   }
-  method _ssl_expiration ( $format //=  "%s %s, %s" ) {
+  method $ssl_expiration ( $format //=  "%s %s, %s" ) {
     my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
     try {
       return sprintf $format ,
@@ -43,7 +44,9 @@ class Domain::Details {
     }
   }
 
-  # @formatter:off
+  field $expiration :reader { $self -> $whois_expiration };
+  field $ssl_expiration :reader { $self -> $ssl_expiration };
+
   method print_ssl :common ( $domain ) {
   # @formatter:on
     my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
@@ -61,7 +64,6 @@ class Domain::Details {
       warn "SSL: $message";
     }
   }
-
   # @formatter:off
   method print_dns :common ( $domain ) {
   # @formatter:on
