@@ -153,7 +153,7 @@ Defaults to 14 days, ie. 2 weeks which is a normal renewal date
       mx    => [] ,
       ns    => [] ,
       txt   => [] ,
-    ); # TODO: %dns_colors
+    ); # to push individual record values here
 
     for my $record ( @a , @mx , @ns , @txt , @soa ) {
       match( $record -> type : eq )
@@ -206,8 +206,7 @@ Defaults to 14 days, ie. 2 weeks which is a normal renewal date
 
     }
 
-    $answer = $answer . $cname if defined $cname;
-    return $answer;
+    return $answer = $answer . $cname if defined $cname;
   }
 
 =method dns
