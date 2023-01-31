@@ -1,24 +1,22 @@
-package Domain::Details;
+# package Domain::Details;
 
 # ABSTRACT: Domain class with DNS/SSL/WHOIS fields
 
 use v5.36;
 use autouse 'Carp' => qw( carp croak );
-# use autouse 'Data::Dumper' => qw( Dumper );
 use autouse 'Data::Printer' => qw( p );
-
-use Object::Pad ':experimental(init_expr)';
-use Syntax::Keyword::Match;
-use Net::Domain::ExpireDate; # Function: expire_date
-use Domain::PublicSuffix;    # Method: get_root_domain
-use POSIX;                   # Functions: setlocale, LC_ALL
-use Net::SSL::ExpireDate;
-use Net::DNS;
-use Geo::IP;
-use Term::ANSIColor;
+use Object::Pad 0.78 ':experimental(init_expr)';
 
 class Domain::Details {
 
+  use Syntax::Keyword::Match;
+  use Net::Domain::ExpireDate; # Function: expire_date
+  use Domain::PublicSuffix;    # Method: get_root_domain
+  use POSIX;                   # Functions: setlocale, LC_ALL
+  use Net::SSL::ExpireDate;
+  use Net::DNS;
+  use Geo::IP;
+  use Term::ANSIColor;
   use experimental qw( try );
 
   # @formatter:off
