@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run" type="#PerlConfigurationType" factoryName="Perl" show_console_on_std_err="false" show_console_on_std_out="false">
+  <configuration default="false" name="Run the &quot;domain&quot; script" type="#PerlConfigurationType" factoryName="Perl" show_console_on_std_err="false" show_console_on_std_out="false">
     <option name="allowRunningInParallel" value="false" />
     <option name="alternativeSdkName" value="Local, Perlbrew[perl-5.37.8]: Perl 5.37.8" />
     <option name="compileTimeBreakpointsEnabled" value="false" />

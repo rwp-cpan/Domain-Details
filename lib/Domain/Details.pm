@@ -27,7 +27,20 @@ class Domain::Details :strict( params ) {
   # @formatter:off
 
   field $domain :param :reader;
-  field $description :accessor;
+
+=method domain
+
+Return the current domain as created with the C<new> constructor
+
+=cut
+
+  field $description :param :accessor = undef;
+
+=method description
+
+Return or set an optional description (comment) on the domain object
+
+=cut
 
   method $whois_expiration ( $format //= '%B %d, %Y' ) {
     my $publicsuffix = Domain::PublicSuffix -> new;
@@ -42,9 +55,7 @@ class Domain::Details :strict( params ) {
         $ssl -> expire_date -> day ,
         $ssl -> expire_date -> year;
     }
-    catch($message) {
-      return undef;
-    }
+    catch( $message ) { undef }
   }
   method $ssl_issue ( $format //=  "%s %s, %s" ) {
     my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
@@ -54,48 +65,87 @@ class Domain::Details :strict( params ) {
         $ssl -> begin_date -> day ,
         $ssl -> begin_date -> year;
     }
-    catch($message) {
-      return undef;
-    }
+    catch( $message ) { undef }
   }
   method $ssl_expires_soon ($format //= '14 days' ) {
     my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
     try {
       $ssl -> is_expired( $format );
     }
-  catch ($message ) {}
+  catch ( $message ) { undef }
 
   }
 
   field $whois_expiration :reader { $self -> $whois_expiration };
+
+=method whois_expiration
+
+Returns domain's expiration date using the L<Net::ExpireDate> module's C<expire_date> function
+
+Derives the root domain using L<Domain::PublicSuffix> class' C<get_root_domain> method
+
+Accepts optional argument to specify the format the date is returned in
+
+=cut
+
   field $ssl_expiration :reader { $self -> $ssl_expiration };
+
+=method ssl_expiration
+
+Return the SSL expiration date using L<Net::SSL::ExpireDate> class' C<expire_date> constructor returning a L<DateTime> object
+
+Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
+
+=cut
+
+
   field $ssl_issue :reader { $self -> $ssl_issue };
+
+=method ssl_issue
+
+Return the SSL issue date using L<Net::SSL::ExpireDate> class' C<begin_date> constructor returning a L<DateTime> object
+
+Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
+
+=cut
+
+
   field $ssl_expires_soon :reader { $self -> $ssl_expires_soon };
+
+=method ssl_expires_soon
+
+Return a boolean indicating if the SSL expires within the time specified
+
+Defaults to 14 days, ie. 2 weeks which is a normal renewal date
+
+=cut
 
   method dns ( ) {
   # @formatter:on
-    my $dns = Net::DNS::Resolver -> new;
+    my $resolver = Net::DNS::Resolver -> new;
+    my $geo = Geo::IP -> open( '/usr/share/GeoIP/GeoIP.dat' );
+    # Set path explicitly because Perlbrew 5.36 on Debian fails to open for searching in /usr/local when Geo::IP is being installed with "cpan"
+    # Installing the Debian package libgeo-ip-perl probably fixes that
 
-    my $a = $dns -> query( $domain , 'A' ); # may return Net::DNS::RR::CNAME (w/ cname method)
+    my ( $cname , $ptr );
+
+    my $a = $resolver -> query( $domain , 'A' );
     my @a = $a -> answer if defined $a;
 
-    my $cname;
-
-    my $mx = $dns -> query( $domain , 'MX' ); # class: Net::DNS::Packet
+    my $mx = $resolver -> query( $domain , 'MX' );
     my @mx = $mx -> answer if defined $mx;
 
-    my $ns = $dns -> query( $domain , 'NS' );
+    my $ns = $resolver -> query( $domain , 'NS' );
     my @ns = $ns -> answer if defined $ns;
 
-    my $ptr;
-
-    my $txt = $dns -> query( $domain , 'TXT' );
+    my $txt = $resolver -> query( $domain , 'TXT' );
     my @txt = $txt -> answer if defined $txt;
 
-    my $soa = $dns -> query( $domain , 'SOA' );
+    my $soa = $resolver -> query( $domain , 'SOA' );
     my @soa = $soa -> answer if defined $soa;
 
     my $answer;
+
     my %dns = (
       a     => [] ,
       cname => '' ,
@@ -105,20 +155,14 @@ class Domain::Details :strict( params ) {
       txt   => [] ,
     ); # TODO: %dns_colors
 
-    my $geo = Geo::IP -> open( '/usr/share/GeoIP/GeoIP.dat' );
-    # Debian, perlbrew 5.36 fails to open for searching in /usr/local when Geo::IP is being installed with cpan
-    # libgeo-ip-perl Debian package probably patches it
-    # my $geo = Geo::IP->new(GEOIP_MEMORY_CACHE); # faster
-
-    for my $record ( @a , @mx , @ns , @txt , @soa ) # Net::DNS::RR object list
-    {
+    for my $record ( @a , @mx , @ns , @txt , @soa ) {
       match( $record -> type : eq )
       {
         case( 'A' )
         {
           $answer .= sprintf( "A:\t%s (%s)\n" , $record -> address , $geo -> country_code_by_addr( $record -> address ));
           push( $dns{a} -> @* , $record -> address );
-          $ptr = $dns -> query( $record -> address , 'PTR' ); # Net::DNS::Packet
+          $ptr = $resolver -> query( $record -> address , 'PTR' ); # Net::DNS::Packet
           if ( $ptr ) {
             my @ptr = $ptr -> answer; # [ Net::DNS:RR, ... ]
             $answer .= Term::ANSIColor::colored( [ 'bright_cyan' ] , sprintf( "P:\t%s (%s)\n" , $ptr[0] -> ptrdname , $geo -> country_code_by_name( $ptr[0] -> ptrdname )));
@@ -162,12 +206,17 @@ class Domain::Details :strict( params ) {
 
     }
 
-    # say Data::Dumper::Dumper %dns;
-
     $answer = $answer . $cname if defined $cname;
     return $answer;
-    # say $answer;
   }
+
+=method dns
+
+L<Net::DNS> records (A, CNAME, MX, NS, TXT, and SOA) with with L<Geo::IP>
+
+Uses L<Syntax::Keyword::Match> to topicalize C<$record -> type>
+
+=cut
 
   # @formatter:off
   method summary () {
@@ -189,3 +238,5 @@ class Domain::Details :strict( params ) {
 =method summary
 
 Output summary, and copy it into the clipboard stripping colors with L<C<colorstrip>|Term::ANSIColor/colorstrip(STRING[, STRING ...])>
+
+=cut

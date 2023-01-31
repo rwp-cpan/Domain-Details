@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Clean" type="ShConfigurationType">
-    <option name="SCRIPT_TEXT" value="perlbrew exec --with devel dzil clean" />
+  <configuration default="false" name="Build distribution with Dist-Zilla" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="perlbrew exec --with devel &quot;dzil build&quot;" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
