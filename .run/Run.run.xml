@@ -1,0 +1,26 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run" type="#PerlConfigurationType" factoryName="Perl" show_console_on_std_err="false" show_console_on_std_out="false">
+    <option name="allowRunningInParallel" value="false" />
+    <option name="alternativeSdkName" value="Local, Perlbrew[perl-5.37.8]: Perl 5.37.8" />
+    <option name="compileTimeBreakpointsEnabled" value="false" />
+    <option name="consoleCharset" value="UTF-8" />
+    <option name="envs">
+      <map />
+    </option>
+    <option name="initCode" value="" />
+    <option name="nonInteractiveModeEnabled" value="false" />
+    <option name="passParentEnvs" value="true" />
+    <option name="perlParameters" value="" />
+    <option name="programParameters" value="google.com" />
+    <option name="projectPathOnTarget" />
+    <option name="scriptCharset" value="utf8" />
+    <option name="scriptPath" value="$PROJECT_DIR$/bin/domain" />
+    <option name="selectedOptions">
+      <list />
+    </option>
+    <option name="startMode" value="RUN" />
+    <option name="useAlternativeSdk" value="true" />
+    <option name="workingDirectory" value="$PROJECT_DIR$/bin" />
+    <method v="2" />
+  </configuration>
+</component>
