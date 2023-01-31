@@ -1,5 +1,4 @@
-# package Domain::Details;
-
+# PODNAME: Domain::Details
 # ABSTRACT: Domain class with DNS/SSL/WHOIS fields
 
 use v5.36;
@@ -7,8 +6,14 @@ use autouse 'Carp' => qw( carp croak );
 use autouse 'Data::Printer' => qw( p );
 use Object::Pad 0.78 ':experimental(init_expr)';
 
-class Domain::Details {
+package Domain::Details;
+# Without, PAUSE: No or no indexable package statements could be found in the distro
 
+# @formatter:off
+class Domain::Details :strict( params ) {
+# @formatter:on
+
+  use experimental qw( try );
   use Syntax::Keyword::Match;
   use Net::Domain::ExpireDate; # Function: expire_date
   use Domain::PublicSuffix;    # Method: get_root_domain
@@ -16,8 +21,8 @@ class Domain::Details {
   use Net::SSL::ExpireDate;
   use Net::DNS;
   use Geo::IP;
-  use Term::ANSIColor;
-  use experimental qw( try );
+  use Term::ANSIColor qw( colorstrip );
+  use Clipboard; # Class method: copy_to_all_selections
 
   # @formatter:off
 
@@ -41,29 +46,33 @@ class Domain::Details {
       return undef;
     }
   }
-
-  field $expiration :reader { $self -> $whois_expiration };
-  field $ssl_expiration :reader { $self -> $ssl_expiration };
-
-  method print_ssl :common ( $domain ) {
-  # @formatter:on
+  method $ssl_issue ( $format //=  "%s %s, %s" ) {
     my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
     try {
-      my %date = ( # Class: DateTime
-        expire => $ssl -> expire_date ,
-        issue  => $ssl -> begin_date
-      );
-      printf( colored( [ 'red' ] , "SSL Expiry: %s %s, %s\n" ) , $date{expire} -> month_name , $date{expire} -> day , $date{expire} -> year );
-      printf( colored( [ 'green' ] , "SSL Issue: %s %s, %s\n" ) , $date{issue} -> month_name , $date{issue} -> day , $date{issue} -> year );
-      say colored( [ 'bright_red' , 'bold' ] , 'EXPIRES IN 14 DAYS' )
-        if defined $ssl -> is_expired( '14 days' );
+      return sprintf $format ,
+        $ssl -> begin_date -> month_name ,
+        $ssl -> begin_date -> day ,
+        $ssl -> begin_date -> year;
     }
     catch($message) {
-      warn "SSL: $message";
+      return undef;
     }
   }
-  # @formatter:off
-  method print_dns :common ( $domain ) {
+  method $ssl_expires_soon ($format //= '14 days' ) {
+    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
+    try {
+      $ssl -> is_expired( $format );
+    }
+  catch ($message ) {}
+
+  }
+
+  field $whois_expiration :reader { $self -> $whois_expiration };
+  field $ssl_expiration :reader { $self -> $ssl_expiration };
+  field $ssl_issue :reader { $self -> $ssl_issue };
+  field $ssl_expires_soon :reader { $self -> $ssl_expires_soon };
+
+  method dns ( ) {
   # @formatter:on
     my $dns = Net::DNS::Resolver -> new;
 
@@ -156,8 +165,27 @@ class Domain::Details {
     # say Data::Dumper::Dumper %dns;
 
     $answer = $answer . $cname if defined $cname;
-    # return $answer;
-    say $answer;
+    return $answer;
+    # say $answer;
   }
 
+  # @formatter:off
+  method summary () {
+  # @formatter:on
+    my $summary = <<~ "SUMMARY";
+    SSL Expiration   : $ssl_expiration @{[$ssl_expires_soon ? '(Expires Soon)' : '' ]}
+    SSL Issue        : $ssl_issue
+    WHOIS Expiration : $whois_expiration
+
+    DNS              :
+
+    @{[$self->dns]}
+    SUMMARY
+    say $summary;
+    Clipboard -> copy_to_all_selections( colorstrip $summary );
+  }
 }
+
+=method summary
+
+Output summary, and copy it into the clipboard stripping colors with L<C<colorstrip>|Term::ANSIColor/colorstrip(STRING[, STRING ...])>

@@ -8,12 +8,4 @@ use lib '/home/regular/IdeaProjects/Domain-Details/lib';
 use Domain::Details;
 
 my $domain = Domain::Details -> new( domain => $ARGV[0] );
-
-printf "WHOIS Expiry: %s\n", $domain -> expiration;
-# printf "SSL: %s\n", $domain -> ssl_expiration;
-
-# say $domain -> description( 'my new domain' );
-
-Domain::Details -> print_ssl( $ARGV[0] );
-Domain::Details -> print_dns( $ARGV[0] );
-
+$domain -> summary;
