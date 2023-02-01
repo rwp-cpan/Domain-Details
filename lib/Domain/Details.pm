@@ -6,11 +6,80 @@ use autouse 'Carp' => qw( carp croak );
 use autouse 'Data::Printer' => qw( p );
 use Object::Pad 0.78 ':experimental(init_expr)';
 
+package Domain::Details::SSL;
+# Without "package" PAUSE complains: no indexable package statements could be found in the distro
+
+role Domain::Details::SSL {
+
+  use experimental qw( try );
+
+  # @formatter:off
+  method ssl_expiration ( $domain = $self -> domain, $format //=  "%s %s, %s" ) {
+    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
+    try {
+      return sprintf $format ,
+        $ssl -> expire_date -> month_name ,
+        $ssl -> expire_date -> day ,
+        $ssl -> expire_date -> year;
+    }
+    catch( $message ) { undef }
+  }
+  # @formatter:on
+
+=method ssl_expiration
+
+Return the SSL expiration date using L<Net::SSL::ExpireDate> class' C<expire_date> constructor returning a L<DateTime> object
+
+Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
+
+=cut
+
+  # @formatter:off
+  method ssl_issue ( $domain = $self -> domain, $format //=  "%s %s, %s" ) {
+    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
+    try {
+      return sprintf $format ,
+        $ssl -> begin_date -> month_name ,
+        $ssl -> begin_date -> day ,
+        $ssl -> begin_date -> year;
+    }
+    catch( $message ) { undef }
+  }
+  # @formatter:on
+
+=method ssl_issue
+
+Return the SSL issue date using L<Net::SSL::ExpireDate> class' C<begin_date> constructor returning a L<DateTime> object
+
+Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
+
+=cut
+
+  # @formatter:off
+  method ssl_expires_soon ($domain = $self -> domain, $format //= '14 days' ) {
+    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
+    try {
+      $ssl -> is_expired( $format );
+    }
+    catch ( $message ) { undef }
+
+  }
+  # @formatter:on
+
+=method ssl_expires_soon
+
+Return a boolean indicating if the SSL expires within the time specified
+
+Defaults to 14 days, ie. 2 weeks which is a normal renewal date
+
+=cut
+
+}
+
 package Domain::Details;
-# Without, PAUSE: No or no indexable package statements could be found in the distro
 
 # @formatter:off
-class Domain::Details :strict( params ) {
+class Domain::Details :strict( params ) :does(Domain::Details::SSL) {
 # @formatter:on
 
   use experimental qw( try );
@@ -30,7 +99,7 @@ class Domain::Details :strict( params ) {
 
 =method domain
 
-Return the current domain as created with the C<new> constructor
+Returns the current domain as created with the C<new> constructor
 
 =cut
 
@@ -38,45 +107,15 @@ Return the current domain as created with the C<new> constructor
 
 =method description
 
-Return or set an optional description (comment) on the domain object
+Returns or sets an optional description (comment) on the domain object
 
 =cut
 
-  method $whois_expiration ( $format //= '%B %d, %Y' ) {
+  method whois_expiration ( $format //= '%B %d, %Y' ) {
     my $publicsuffix = Domain::PublicSuffix -> new;
     setlocale( LC_ALL , 'en_US.UTF-8' );
     return expire_date( $publicsuffix -> get_root_domain( $domain ) , $format ); # domain without the www. prefix
   }
-  method $ssl_expiration ( $format //=  "%s %s, %s" ) {
-    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
-    try {
-      return sprintf $format ,
-        $ssl -> expire_date -> month_name ,
-        $ssl -> expire_date -> day ,
-        $ssl -> expire_date -> year;
-    }
-    catch( $message ) { undef }
-  }
-  method $ssl_issue ( $format //=  "%s %s, %s" ) {
-    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
-    try {
-      return sprintf $format ,
-        $ssl -> begin_date -> month_name ,
-        $ssl -> begin_date -> day ,
-        $ssl -> begin_date -> year;
-    }
-    catch( $message ) { undef }
-  }
-  method $ssl_expires_soon ($format //= '14 days' ) {
-    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
-    try {
-      $ssl -> is_expired( $format );
-    }
-  catch ( $message ) { undef }
-
-  }
-
-  field $whois_expiration :reader { $self -> $whois_expiration };
 
 =method whois_expiration
 
@@ -85,38 +124,6 @@ Returns domain's expiration date using the L<Net::ExpireDate> module's C<expire_
 Derives the root domain using L<Domain::PublicSuffix> class' C<get_root_domain> method
 
 Accepts optional argument to specify the format the date is returned in
-
-=cut
-
-  field $ssl_expiration :reader { $self -> $ssl_expiration };
-
-=method ssl_expiration
-
-Return the SSL expiration date using L<Net::SSL::ExpireDate> class' C<expire_date> constructor returning a L<DateTime> object
-
-Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
-
-=cut
-
-
-  field $ssl_issue :reader { $self -> $ssl_issue };
-
-=method ssl_issue
-
-Return the SSL issue date using L<Net::SSL::ExpireDate> class' C<begin_date> constructor returning a L<DateTime> object
-
-Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
-
-=cut
-
-
-  field $ssl_expires_soon :reader { $self -> $ssl_expires_soon };
-
-=method ssl_expires_soon
-
-Return a boolean indicating if the SSL expires within the time specified
-
-Defaults to 14 days, ie. 2 weeks which is a normal renewal date
 
 =cut
 
@@ -214,17 +221,18 @@ Defaults to 14 days, ie. 2 weeks which is a normal renewal date
 
 L<Net::DNS> records (A, CNAME, MX, NS, TXT, and SOA) with with L<Geo::IP>
 
-Uses L<Syntax::Keyword::Match> to topicalize C<$record -> type>
+Uses L<Syntax::Keyword::Match> to topicalize C<< $record - >> type>
 
 =cut
 
   # @formatter:off
   method summary () {
   # @formatter:on
+
     my $summary = <<~ "SUMMARY";
-    SSL Expiration   : $ssl_expiration @{[$ssl_expires_soon ? '(Expires Soon)' : '' ]}
-    SSL Issue        : $ssl_issue
-    WHOIS Expiration : $whois_expiration
+    SSL Expiration   : @{[$self -> ssl_expiration]} @{[$self -> ssl_expires_soon ? '(Expires Soon)' : '' ]}
+    SSL Issue        : @{[$self -> ssl_issue]}
+    WHOIS Expiration : @{[$self -> whois_expiration]}
 
     DNS              :
 
@@ -233,10 +241,11 @@ Uses L<Syntax::Keyword::Match> to topicalize C<$record -> type>
     say $summary;
     Clipboard -> copy_to_all_selections( colorstrip $summary );
   }
-}
 
 =method summary
 
 Output summary, and copy it into the clipboard stripping colors with L<C<colorstrip>|Term::ANSIColor/colorstrip(STRING[, STRING ...])>
 
 =cut
+
+}
