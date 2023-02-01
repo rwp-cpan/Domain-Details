@@ -206,7 +206,8 @@ Defaults to 14 days, ie. 2 weeks which is a normal renewal date
 
     }
 
-    return $answer = $answer . $cname if defined $cname;
+    $answer = $answer . $cname if defined $cname;
+    return $answer;
   }
 
 =method dns
