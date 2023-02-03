@@ -6,76 +6,6 @@ use autouse 'Carp' => qw( carp croak );
 use autouse 'Data::Printer' => qw( p );
 use Object::Pad 0.78 ':experimental(init_expr)';
 
-package Domain::Details::SSL;
-# Without "package" PAUSE complains: no indexable package statements could be found in the distro
-
-role Domain::Details::SSL {
-
-  use experimental qw( try );
-
-  # @formatter:off
-  method ssl_expiration ( $domain = $self -> domain, $format //=  "%s %s, %s" ) {
-    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
-    try {
-      return sprintf $format ,
-        $ssl -> expire_date -> month_name ,
-        $ssl -> expire_date -> day ,
-        $ssl -> expire_date -> year;
-    }
-    catch( $message ) { undef }
-  }
-  # @formatter:on
-
-=method ssl_expiration
-
-Return the SSL expiration date using L<Net::SSL::ExpireDate> class' C<expire_date> constructor returning a L<DateTime> object
-
-Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
-
-=cut
-
-  # @formatter:off
-  method ssl_issue ( $domain = $self -> domain, $format //=  "%s %s, %s" ) {
-    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
-    try {
-      return sprintf $format ,
-        $ssl -> begin_date -> month_name ,
-        $ssl -> begin_date -> day ,
-        $ssl -> begin_date -> year;
-    }
-    catch( $message ) { undef }
-  }
-  # @formatter:on
-
-=method ssl_issue
-
-Return the SSL issue date using L<Net::SSL::ExpireDate> class' C<begin_date> constructor returning a L<DateTime> object
-
-Accepts an argument to loosely set the date format as Year, Month, Day in C<sprintf> syntax
-
-=cut
-
-  # @formatter:off
-  method ssl_expires_soon ($domain = $self -> domain, $format //= '14 days' ) {
-    my $ssl = Net::SSL::ExpireDate -> new( https => $domain );
-    try {
-      $ssl -> is_expired( $format );
-    }
-    catch ( $message ) { undef }
-
-  }
-  # @formatter:on
-
-=method ssl_expires_soon
-
-Return a boolean indicating if the SSL expires within the time specified
-
-Defaults to 14 days, ie. 2 weeks which is a normal renewal date
-
-=cut
-
-}
-
 package Domain::Details;
 
 # @formatter:off
@@ -87,7 +17,6 @@ class Domain::Details :strict( params ) :does(Domain::Details::SSL) {
   use Net::Domain::ExpireDate; # Function: expire_date
   use Domain::PublicSuffix;    # Method: get_root_domain
   use POSIX;                   # Functions: setlocale, LC_ALL
-  use Net::SSL::ExpireDate;
   use Net::DNS;
   use Geo::IP;
   use Term::ANSIColor qw( colorstrip );
