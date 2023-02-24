@@ -5,8 +5,21 @@
 
 use v5.36;
 use lib '/home/regular/IdeaProjects/Domain-Details/lib';
+use Getopt::Long;
 use Domain::Details;
+use Clipboard;
+
+my $getopt = Getopt::Long::Parser -> new;
+$getopt -> configure( 'auto_help' , 'auto_version' , 'no_ignore_case' , 'bundling' );
+$getopt -> getoptions( \my %options , 'ssl|c' , 'dns|d' , 'whois|w' );
 
 my $domain = Domain::Details -> new( domain => $ARGV[0] );
-# say $domain -> ssl_expiration;
-$domain -> summary;
+
+if ( defined $options{ssl} ) {
+  my $expiry = $domain -> ssl_expiration;
+  Clipboard -> copy_to_all_selections( $expiry );
+  say $expiry;
+}
+else {
+  $domain -> summary;
+}

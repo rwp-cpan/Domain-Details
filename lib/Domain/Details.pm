@@ -2,17 +2,16 @@
 # ABSTRACT: Domain class with DNS/SSL/WHOIS fields
 
 use v5.36;
-use autouse 'Carp' => qw( carp croak );
-use autouse 'Data::Printer' => qw( p );
 use Object::Pad 0.78 ':experimental(init_expr)';
 
 package Domain::Details;
 
 # @formatter:off
-class Domain::Details :strict( params ) :does(Domain::Details::SSL) {
+class Domain::Details :strict( params ) :does( Domain::Details::SSL ) {
 # @formatter:on
 
   use experimental qw( try );
+  use autouse 'Data::Printer' => qw( p );
   use Syntax::Keyword::Match;
   use Net::Domain::ExpireDate; # Function: expire_date
   use Domain::PublicSuffix;    # Method: get_root_domain
